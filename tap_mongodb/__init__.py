@@ -106,7 +106,7 @@ def get_roles(client, config):
 
 def get_databases(client, config):
     roles = get_roles(client, config)
-    LOGGER.info('Roles: %s', roles)
+    LOGGER.debug('Roles: %s', roles)
 
     can_read_all = (roles is None) or (len([r for r in roles if r['role'] in ROLES_WITH_ALL_DB_FIND_PRIVILEGES]) > 0)
 
@@ -114,7 +114,7 @@ def get_databases(client, config):
         db_names = [d for d in client.list_database_names() if d not in IGNORE_DBS]
     else:
         db_names = [r['db'] for r in roles if r['db'] not in IGNORE_DBS]
-    LOGGER.info('Databases: %s', db_names)
+    LOGGER.debug('Databases: %s', db_names)
     return db_names
 
 
@@ -175,7 +175,7 @@ def do_discover(client, config):
             if is_view:
                 continue
 
-            LOGGER.info("Getting collection info for db: %s, collection: %s",
+            LOGGER.debug("Getting collection info for db: %s, collection: %s",
                         db_name, collection_name)
             streams.append(produce_collection_schema(collection))
 
@@ -259,7 +259,7 @@ def clear_state_on_replication_change(stream, state):
     last_replication_method = singer.get_bookmark(state, tap_stream_id, 'last_replication_method')
     if last_replication_method is not None and (current_replication_method != last_replication_method):
         log_msg = 'Replication method changed from %s to %s, will re-replicate entire collection %s'
-        LOGGER.info(log_msg, last_replication_method, current_replication_method, tap_stream_id)
+        LOGGER.debug(log_msg, last_replication_method, current_replication_method, tap_stream_id)
         state = singer.reset_stream(state, tap_stream_id)
 
     # replication key changed
@@ -268,7 +268,7 @@ def clear_state_on_replication_change(stream, state):
         current_replication_key = metadata.get(md_map, (), 'replication-key')
         if last_replication_key is not None and (current_replication_key != last_replication_key):
             log_msg = 'Replication Key changed from %s to %s, will re-replicate entire collection %s'
-            LOGGER.info(log_msg, last_replication_key, current_replication_key, tap_stream_id)
+            LOGGER.debug(log_msg, last_replication_key, current_replication_key, tap_stream_id)
             state = singer.reset_stream(state, tap_stream_id)
         state = singer.write_bookmark(state, tap_stream_id, 'replication_key_name', current_replication_key)
 
@@ -307,13 +307,13 @@ def sync_stream(client, stream, state):
             if oplog.oplog_has_aged_out(client, state, tap_stream_id):
                 # remove all state for stream
                 # then it will do a full sync and start oplog again.
-                LOGGER.info("Clearing state because Oplog has aged out")
+                LOGGER.debug("Clearing state because Oplog has aged out")
                 state.get('bookmarks', {}).pop(tap_stream_id)
 
             # make sure initial full table sync has been completed
             if not singer.get_bookmark(state, tap_stream_id, 'initial_full_table_complete'):
                 msg = 'Must complete full table sync before starting oplog replication for %s'
-                LOGGER.info(msg, tap_stream_id)
+                LOGGER.debug(msg, tap_stream_id)
 
                 # only mark current ts in oplog on first sync so tap has a
                 # starting point after the full table sync
@@ -347,7 +347,7 @@ def do_sync(client, catalog, state):
     for stream in streams_to_sync:
         sync_stream(client, stream, state)
 
-    LOGGER.info(common.get_sync_summary(catalog))
+    LOGGER.debug(common.get_sync_summary(catalog))
 
 def parse_args(required_config_keys):
     '''Parse standard command-line args.
@@ -443,7 +443,7 @@ def main_impl():
 
     client = pymongo.MongoClient(**connection_params)
 
-    LOGGER.info('Connected to MongoDB host: %s, version: %s',
+    LOGGER.debug('Connected to MongoDB host: %s, version: %s',
                 config['host'],
                 client.server_info().get('version', 'unknown'))
 
