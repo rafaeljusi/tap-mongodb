@@ -1,0 +1,34 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Discover",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/",
+      "console": "externalTerminal",
+      "args": [
+        "--config",
+        "/home/rafaeljusi/albert-sync/magva/tap-mongo/config.json",
+        "--discover"
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "Tap",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/__main__.py",
+      "console": "externalTerminal",
+      "args": [
+        "--config", "/home/rafaeljusi/albert-sync/magva/tap-mongo/config.json",
+        "--catalog", "/home/rafaeljusi/albert-sync/magva/tap-mongo/catalog.json",
+        "--output", "/home/rafaeljusi/albert-sync/magva/tap-mongo/test_output.json"
+      ],
+      "justMyCode": false
+    }
+  ]
+}
