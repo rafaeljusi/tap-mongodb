@@ -13,7 +13,8 @@
       "args": [
         "--config",
         "/home/rafaeljusi/albert-sync/magva/tap-mongo/config.json",
-        "--discover"
+        "--discover",
+        "--output", "/home/rafaeljusi/albert-sync/magva/tap-mongo/catalog.json"
       ],
       "justMyCode": false
     },
@@ -26,7 +27,8 @@
       "args": [
         "--config", "/home/rafaeljusi/albert-sync/magva/tap-mongo/config.json",
         "--catalog", "/home/rafaeljusi/albert-sync/magva/tap-mongo/catalog.json",
-        "--output", "/home/rafaeljusi/albert-sync/magva/tap-mongo/test_output.json"
+        "--state", "/home/rafaeljusi/albert-sync/magva/tap-mongo/state.json",
+        "--output", "/home/rafaeljusi/albert-sync/magva/tap-mongo/output.json"
       ],
       "justMyCode": false
     }

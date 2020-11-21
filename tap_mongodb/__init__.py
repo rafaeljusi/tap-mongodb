@@ -225,10 +225,12 @@ def get_streams_to_sync(streams, state):
 
 
 def write_schema_message(stream):
+    md_map = metadata.to_map(stream['metadata'])
+    key_properties = metadata.get(md_map, (), 'table-key-properties')
     singer.write_message(singer.SchemaMessage(
         stream=common.calculate_destination_stream_name(stream),
         schema=stream['schema'],
-        key_properties=['_id']))
+        key_properties=key_properties))
 
 def load_stream_projection(stream):
     md_map = metadata.to_map(stream['metadata'])
@@ -236,11 +238,12 @@ def load_stream_projection(stream):
     if stream_projection == '' or stream_projection == '""' or not stream_projection:
         return None
 
-    try:
-        stream_projection = json.loads(stream_projection)
-    except:
-        err_msg = "The projection: {} for stream {} is not valid json"
-        raise common.InvalidProjectionException(err_msg.format(stream_projection,
+    if isinstance(stream_projection, str):
+        try:
+            stream_projection = json.loads(stream_projection)
+        except:
+            err_msg = "The projection: {} for stream {} is not valid json"
+            raise common.InvalidProjectionException(err_msg.format(stream_projection,
                                                                stream['tap_stream_id']))
 
     if stream_projection and stream_projection.get('_id') == 0:

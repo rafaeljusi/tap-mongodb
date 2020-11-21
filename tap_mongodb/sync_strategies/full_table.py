@@ -105,11 +105,12 @@ def sync_collection(client, stream, state, projection):
         time_extracted = utils.now()
         start_time = time.time()
 
-        schema = {"type": "object", "properties": {}}
+        schema = stream['schema'] or {"type": "object", "properties": {}}
         for row in cursor:
             rows_saved += 1
 
             schema_build_start_time = time.time()
+            
             if common.row_to_schema(schema, row):
                 singer.write_message(singer.SchemaMessage(
                     stream=common.calculate_destination_stream_name(stream),

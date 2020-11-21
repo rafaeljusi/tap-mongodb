@@ -190,7 +190,29 @@ def add_to_any_of(schema, value):
                 has_date = True
                 break
         if not has_date:
-            schema.insert(0, {"type": "string", "format": "date-time"})
+            schema.insert(0, {"type": ["null", "string"], "format": "date-time"})
+            changed = True
+
+    elif isinstance(value, (uuid.UUID)):
+        has_uuid = False
+        for field_schema_entry in schema:
+            if field_schema_entry.get('format') == 'uuid':
+                has_uuid = True
+                break
+
+        if not has_uuid:
+            schema.insert(0, {"type": ["null", "string"], "format": "uuid"})
+            changed = True
+
+    elif isinstance(value, (objectid.ObjectId)):
+        has_objectid = False
+        for field_schema_entry in schema:
+            if field_schema_entry.get('format') == 'objectid':
+                has_objectid = True
+                break
+
+        if not has_objectid:
+            schema.insert(0, {"type": ["null", "string"], "format": "objectid"})
             changed = True
 
     elif isinstance(value, bson.decimal128.Decimal128):
@@ -208,9 +230,9 @@ def add_to_any_of(schema, value):
 
         if not has_decimal:
             if has_date:
-                schema.insert(1, {"type": "number", "multipleOf": decimal.Decimal('1e-34')})
+                schema.insert(1, {"type": ["null", "number"], "multipleOf": decimal.Decimal('1e-34')})
             else:
-                schema.insert(0, {"type": "number", "multipleOf": decimal.Decimal('1e-34')})
+                schema.insert(0, {"type": ["null", "number"], "multipleOf": decimal.Decimal('1e-34')})
             changed = True
 
     elif isinstance(value, float):
@@ -228,10 +250,34 @@ def add_to_any_of(schema, value):
 
         if not has_float:
             if has_date:
-                schema.insert(1, {"type": "number"})
+                schema.insert(1, {"type": ["null", "number"]})
             else:
-                schema.insert(0, {"type": "number"})
+                schema.insert(0, {"type": ["null", "number"]})
 
+            changed = True
+    
+    elif isinstance(value, bool):
+        has_bool = False
+
+        for field_schema_entry in schema:
+            if field_schema_entry.get('type') == ["null", "boolean"]:
+                has_bool = True
+                break
+            
+        if not has_bool:
+            schema.insert(0, {"type": ["null", "boolean"]})
+            changed = True
+    
+    elif isinstance(value, int):
+        has_int = False
+
+        for field_schema_entry in schema:
+            if field_schema_entry.get('type') == ["null", "integer"]:
+                has_int = True
+                break
+            
+        if not has_int:
+            schema.insert(0, {"type": ["null", "integer"]})
             changed = True
 
     elif isinstance(value, dict):
@@ -273,23 +319,39 @@ def add_to_any_of(schema, value):
         # if it changed and didn't exist, insert it
         if not has_list and list_entry_changed:
             schema.insert(-1, list_schema)
+    elif isinstance(value, str):
+        has_str = False
+
+        for field_schema_entry in schema:
+            if field_schema_entry.get('type') == ["null", "string"]:
+                has_str = True
+                break
+            
+        if not has_str:
+            schema.insert(0, {"type": ["null", "string"]})
+            changed = True
+
     return changed
 
 def row_to_schema(schema, row):
     changed = False
 
     for field, value in row.items():
-        if isinstance(value, (bson_datetime.datetime,
-                              timestamp.Timestamp,
-                              datetime.datetime,
-                              bson.decimal128.Decimal128,
-                              float,
-                              dict,
-                              list)):
+        # if isinstance(value, (bson_datetime.datetime,
+        #                       timestamp.Timestamp,
+        #                       datetime.datetime,
+        #                       bson.decimal128.Decimal128,
+        #                       float,
+        #                       dict,
+        #                       uuid.UUID,
+        #                       objectid.ObjectId,
+        #                       list)):
 
             # get pointer to field's anyOf list
             if not schema.get('properties', {}).get(field):
-                schema['properties'][field] = {'anyOf': [{}]}
+                schema['properties'][field] = {'anyOf': []}
+            if not schema['properties'][field].get('anyOf'):
+                schema['properties'][field]['anyOf'] = []
             anyof_schema = schema['properties'][field]['anyOf']
 
             # add value's schema to anyOf list
