@@ -180,17 +180,18 @@ def row_to_singer_record(stream, row, version, time_extracted):
         version=version,
         time_extracted=time_extracted)
 
-def add_to_any_of(schema, value):
+def add_to_type(schema, value):
     changed = False
 
     if isinstance(value, (bson_datetime.datetime, timestamp.Timestamp, datetime.datetime)):
         has_date = False
-        for field_schema_entry in schema:
-            if field_schema_entry.get('format') == 'date-time':
-                has_date = True
-                break
-        if not has_date:
-            schema.insert(0, {"type": ["null", "string"], "format": "date-time"})
+        
+        if not 'string' in schema['type']:
+            schema['type'].append('string')
+            changed = True
+        
+        if not schema.get('format'):
+            schema['format'] = 'date-time';
             changed = True
 
     elif isinstance(value, (uuid.UUID)):
@@ -205,14 +206,13 @@ def add_to_any_of(schema, value):
             changed = True
 
     elif isinstance(value, (objectid.ObjectId)):
-        has_objectid = False
-        for field_schema_entry in schema:
-            if field_schema_entry.get('format') == 'objectid':
-                has_objectid = True
-                break
-
-        if not has_objectid:
-            schema.insert(0, {"type": ["null", "string"], "format": "objectid"})
+        
+        if not 'string' in schema['type']:
+            schema['type'].append('string')
+            changed = True
+        
+        if not schema.get('format'):
+            schema['format'] = 'objectid';
             changed = True
 
     elif isinstance(value, bson.decimal128.Decimal128):
@@ -257,47 +257,26 @@ def add_to_any_of(schema, value):
             changed = True
     
     elif isinstance(value, bool):
-        has_bool = False
-
-        for field_schema_entry in schema:
-            if field_schema_entry.get('type') == ["null", "boolean"]:
-                has_bool = True
-                break
-            
-        if not has_bool:
-            schema.insert(0, {"type": ["null", "boolean"]})
+        
+        if not 'boolean' in schema['type']:
+            schema['type'].append('boolean')
             changed = True
     
     elif isinstance(value, int):
-        has_int = False
-
-        for field_schema_entry in schema:
-            if field_schema_entry.get('type') == ["null", "integer"]:
-                has_int = True
-                break
-            
-        if not has_int:
-            schema.insert(0, {"type": ["null", "integer"]})
+        
+        if not 'integer' in schema['type']:
+            schema['type'].append('integer')
             changed = True
 
     elif isinstance(value, dict):
-        has_object = False
-
-        # get pointer to object schema and see if it already existed
-        object_schema = {"type": "object", "properties": {}}
-        for field_schema_entry in schema:
-            if field_schema_entry.get('type') == 'object':
-                object_schema = field_schema_entry
-                has_object = True
-
-        # see if object schema changed
-        if row_to_schema(object_schema, value):
+        if not 'object' in schema['type']:
+            schema['type'].append('object')
             changed = True
 
-            # if it changed and existed, it's reference was modified
-            # if it changed and didn't exist, insert it
-            if not has_object:
-                schema.insert(-1, object_schema)
+        # see if object schema changed
+        if row_to_schema(schema, value):
+            changed = True
+
     elif isinstance(value, list):
         has_list = False
 
@@ -312,7 +291,7 @@ def add_to_any_of(schema, value):
         # see if list schema changed
         list_entry_changed = False
         for list_entry in value:
-            list_entry_changed = add_to_any_of(anyof_schema, list_entry) or list_entry_changed
+            list_entry_changed = add_to_type(anyof_schema, list_entry) or list_entry_changed
             changed = changed or list_entry_changed
 
         # if it changed and existed, it's reference was modified
@@ -320,15 +299,9 @@ def add_to_any_of(schema, value):
         if not has_list and list_entry_changed:
             schema.insert(-1, list_schema)
     elif isinstance(value, str):
-        has_str = False
-
-        for field_schema_entry in schema:
-            if field_schema_entry.get('type') == ["null", "string"]:
-                has_str = True
-                break
-            
-        if not has_str:
-            schema.insert(0, {"type": ["null", "string"]})
+        
+        if not 'string' in schema['type']:
+            schema['type'].append('string')
             changed = True
 
     return changed
@@ -347,15 +320,23 @@ def row_to_schema(schema, row):
         #                       objectid.ObjectId,
         #                       list)):
 
-            # get pointer to field's anyOf list
-            if not schema.get('properties', {}).get(field):
-                schema['properties'][field] = {'anyOf': []}
-            if not schema['properties'][field].get('anyOf'):
-                schema['properties'][field]['anyOf'] = []
-            anyof_schema = schema['properties'][field]['anyOf']
+            # get pointer to field's type list
+            if not 'properties' in schema:
+                schema['properties'] = {}
+            
+            if not field in schema['properties']:
+                schema['properties'][field] = {'type': []}
+            
+            if not schema['properties'][field].get('type'):
+                schema['properties'][field]['type'] = []
 
-            # add value's schema to anyOf list
-            changed = add_to_any_of(anyof_schema, value) or changed
+            if not 'null' in schema['properties'][field]['type']:
+                schema['properties'][field]['type'].append('null')
+
+            type_schema = schema['properties'][field]
+
+            # add value's schema to type list
+            changed = add_to_type(type_schema, value) or changed
 
     return changed
 
