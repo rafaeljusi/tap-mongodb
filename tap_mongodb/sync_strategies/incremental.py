@@ -63,6 +63,11 @@ def sync_collection(client, stream, state, projection):
 
     replication_key_name = stream_metadata.get('replication-key')
     replication_key_value_bookmark = stream_state.get('replication_key_value')
+    
+    if replication_key_name is None:
+        msg = f"replication-key was not defined for {tap_stream_id}"
+        LOGGER.error(msg)
+        raise Exception(msg)
 
     # write state message
     singer.write_message(singer.StateMessage(value=copy.deepcopy(state)))

@@ -161,23 +161,21 @@ def produce_collection_schema(collection):
 def do_discover(client, config):
     streams = []
 
-    for db_name in get_databases(client, config):
-        # pylint: disable=invalid-name
-        db = client[db_name]
+    db = client.get_default_database()
 
-        collection_names = db.list_collection_names()
-        for collection_name in [c for c in collection_names
-                                if not c.startswith("system.")]:
+    collection_names = db.list_collection_names()
+    for collection_name in [c for c in collection_names
+                            if not c.startswith("system.")]:
 
-            collection = db[collection_name]
-            is_view = collection.options().get('viewOn') is not None
-            # TODO: Add support for views
-            if is_view:
-                continue
+        collection = db[collection_name]
+        is_view = collection.options().get('viewOn') is not None
+        # TODO: Add support for views
+        if is_view:
+            continue
 
-            LOGGER.debug("Getting collection info for db: %s, collection: %s",
-                        db_name, collection_name)
-            streams.append(produce_collection_schema(collection))
+        LOGGER.debug("Getting collection info for db: %s, collection: %s",
+                    db.name, collection_name)
+        streams.append(produce_collection_schema(collection))
 
     json.dump({'streams' : streams}, sys.stdout, indent=2)
 
@@ -427,24 +425,31 @@ def main_impl():
     args = parse_args(REQUIRED_CONFIG_KEYS)
     config = args.config
 
-    # Default SSL verify mode to true, give option to disable
-    verify_mode = config.get('verify_mode', 'true') == 'true'
-    use_ssl = config.get('ssl') == 'true'
+    host = config['host']
+    port = int(config.get('port', 27017))
+    user = config.get('user', None)
+    password = config.get('password', None)
+    database = config['database']
+    authSource = config.get('authSource', 'admin')
+    replicaSet = config.get('replica_set', None)
+    readPreference = config.get('readPreference', 'secondaryPreferred')
+    ssl = config.get('ssl', False)
 
-    connection_params = {"host": config['host'],
-                         "port": int(config['port']),
-                         "username": config.get('user', None),
-                         "password": config.get('password', None),
-                         "authSource": config['database'],
-                         "ssl": use_ssl,
-                         "replicaset": config.get('replica_set', None),
-                         "readPreference": 'secondaryPreferred'}
+    if user is not None and password is not None:
+        connection_string = f"mongodb+srv://{user}:{password}@{host}/{database}?authSource={authSource}"
+    else:
+        connection_string = f"mongodb+srv://{host}/{database}?authSource={authSource}"
 
-    # NB: "ssl_cert_reqs" must ONLY be supplied if `SSL` is true.
-    if not verify_mode and use_ssl:
-        connection_params["ssl_cert_reqs"] = ssl.CERT_NONE
+    if replicaSet is not None:
+        connection_string += f"&replicaSet={replicaSet}"
+    
+    if readPreference is not None:
+        connection_string += f"&readPreference={readPreference}"
+        
+    if ssl:
+        connection_string += f"&ssl={ssl}"
 
-    client = pymongo.MongoClient(**connection_params)
+    client = pymongo.MongoClient(connection_string)
 
     LOGGER.debug('Connected to MongoDB host: %s, version: %s',
                 config['host'],
