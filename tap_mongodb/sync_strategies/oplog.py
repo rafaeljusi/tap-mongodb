@@ -72,13 +72,13 @@ def transform_projection(projection):
         return new_projection
 
     temp_projection = {k:v for k, v in projection.items() if k != '_id'}
-    is_whitelist = sum([v for k, v in temp_projection.items()]) > 0
+    is_whitelist = sum([v for k, v in temp_projection.items() if isinstance(v, int)]) > 0
 
     # If only '_id' is included in projection
     if not temp_projection:
         # If only '_id' is whitelisted, return base projection with 'o._id' whitelisted
         new_projection = base_projection
-        new_projection['o._id'] = 1
+        new_projection['_id'] = 1
         return new_projection
 
     # If whitelist is provided, return base projection along
@@ -86,13 +86,13 @@ def transform_projection(projection):
     if is_whitelist:
         new_projection = base_projection
         for field, value in temp_projection.items():
-            new_projection['o.' + field] = value
-        new_projection['o._id'] = 1
+            new_projection[field] = value
+        new_projection['_id'] = 1
         return new_projection
 
     # If blacklist is provided, return blacklisted fields with _id whitelisted
     for field, value in temp_projection.items():
-        new_projection['o.' + field] = value
+        new_projection[field] = value
     return new_projection
 
 
