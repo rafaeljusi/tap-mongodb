@@ -236,24 +236,8 @@ def add_to_type(schema, value):
             changed = True
 
     elif isinstance(value, float):
-        has_date = False
-        has_float = False
-
-        for field_schema_entry in schema:
-            if field_schema_entry.get('format') == 'date-time':
-                has_date = True
-            if field_schema_entry.get('type') == 'number' and field_schema_entry.get('multipleOf'):
-                field_schema_entry.pop('multipleOf')
-                return True
-            if field_schema_entry.get('type') == 'number' and not field_schema_entry.get('multipleOf'):
-                has_float = True
-
-        if not has_float:
-            if has_date:
-                schema.insert(1, {"type": ["null", "number"]})
-            else:
-                schema.insert(0, {"type": ["null", "number"]})
-
+        if not 'number' in schema['type']:
+            schema['type'].append('number')
             changed = True
     
     elif isinstance(value, bool):
