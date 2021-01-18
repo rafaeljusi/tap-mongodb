@@ -65,10 +65,9 @@ def transform_projection(projection):
     new_projection = {}
 
 
-    # If no projection was provided, return base_projection with 'o' whitelisted
+    # If no projection was provided, return base_projection whitelisted
     if projection is None:
         new_projection = base_projection
-        new_projection['o'] = 1
         return new_projection
 
     temp_projection = {k:v for k, v in projection.items() if k != '_id'}
@@ -169,9 +168,9 @@ def sync_collection(client, stream, state, stream_projection):
             row_op = row['op']
 
             if row_op == 'i':
-                write_schema(schema, row['o'], stream)
+                write_schema(schema, row, stream)
                 record_message = common.row_to_singer_record(stream,
-                                                             row['o'],
+                                                             row,
                                                              version,
                                                              time_extracted)
                 singer.write_message(record_message)
@@ -184,15 +183,15 @@ def sync_collection(client, stream, state, stream_projection):
             elif row_op == 'd':
 
                 # remove update from buffer if that document has been deleted
-                if row['o']['_id'] in update_buffer:
-                    update_buffer.remove(row['o']['_id'])
+                if row['_id'] in update_buffer:
+                    update_buffer.remove(row['_id'])
 
                 # Delete ops only contain the _id of the row deleted
-                row['o'][SDC_DELETED_AT] = row['ts']
+                row[SDC_DELETED_AT] = row['ts']
 
-                write_schema(schema, row['o'], stream)
+                write_schema(schema, row, stream)
                 record_message = common.row_to_singer_record(stream,
-                                                             row['o'],
+                                                             row,
                                                              version,
                                                              time_extracted)
                 singer.write_message(record_message)
