@@ -434,11 +434,17 @@ def main_impl():
     replicaSet = config.get('replica_set', None)
     readPreference = config.get('readPreference', 'secondaryPreferred')
     ssl = config.get('ssl', False)
+    srv = config.get('srv', True)
+
+    if srv and host != 'localhost':
+        srv = '+srv'
+    else:
+        srv = ''
 
     if user is not None and password is not None:
-        connection_string = f"mongodb+srv://{user}:{password}@{host}/{database}?authSource={authSource}"
+        connection_string = f"mongodb{srv}://{user}:{password}@{host}/{database}?authSource={authSource}"
     else:
-        connection_string = f"mongodb+srv://{host}/{database}?authSource={authSource}"
+        connection_string = f"mongodb{srv}://{host}/{database}?authSource={authSource}"
 
     if replicaSet is not None:
         connection_string += f"&replicaSet={replicaSet}"
