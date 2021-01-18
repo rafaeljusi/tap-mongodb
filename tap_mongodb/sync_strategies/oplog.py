@@ -68,6 +68,7 @@ def transform_projection(projection):
     # If no projection was provided, return base_projection whitelisted
     if projection is None:
         new_projection = base_projection
+        new_projection['o'] = 1
         return new_projection
 
     temp_projection = {k:v for k, v in projection.items() if k != '_id'}
@@ -77,7 +78,7 @@ def transform_projection(projection):
     if not temp_projection:
         # If only '_id' is whitelisted, return base projection with 'o._id' whitelisted
         new_projection = base_projection
-        new_projection['_id'] = 1
+        new_projection['o._id'] = 1
         return new_projection
 
     # If whitelist is provided, return base projection along
@@ -85,13 +86,13 @@ def transform_projection(projection):
     if is_whitelist:
         new_projection = base_projection
         for field, value in temp_projection.items():
-            new_projection[field] = value
-        new_projection['_id'] = 1
+            new_projection['o.' + field] = value
+        new_projection['o._id'] = 1
         return new_projection
 
     # If blacklist is provided, return blacklisted fields with _id whitelisted
     for field, value in temp_projection.items():
-        new_projection[field] = value
+        new_projection['o.' + field] = value
     return new_projection
 
 
@@ -168,9 +169,9 @@ def sync_collection(client, stream, state, stream_projection):
             row_op = row['op']
 
             if row_op == 'i':
-                write_schema(schema, row, stream)
+                write_schema(schema, row['o'], stream)
                 record_message = common.row_to_singer_record(stream,
-                                                             row,
+                                                             row['o'],
                                                              version,
                                                              time_extracted)
                 singer.write_message(record_message)
@@ -183,15 +184,15 @@ def sync_collection(client, stream, state, stream_projection):
             elif row_op == 'd':
 
                 # remove update from buffer if that document has been deleted
-                if row['_id'] in update_buffer:
-                    update_buffer.remove(row['_id'])
+                if row['o']['_id'] in update_buffer:
+                    update_buffer.remove(row['o']['_id'])
 
                 # Delete ops only contain the _id of the row deleted
-                row[SDC_DELETED_AT] = row['ts']
+                row['o'][SDC_DELETED_AT] = row['ts']
 
-                write_schema(schema, row, stream)
+                write_schema(schema, row['o'], stream)
                 record_message = common.row_to_singer_record(stream,
-                                                             row,
+                                                             row['o'],
                                                              version,
                                                              time_extracted)
                 singer.write_message(record_message)
