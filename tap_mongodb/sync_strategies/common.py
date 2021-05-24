@@ -195,14 +195,12 @@ def add_to_type(schema, value):
             changed = True
 
     elif isinstance(value, (uuid.UUID)):
-        has_uuid = False
-        for field_schema_entry in schema:
-            if field_schema_entry.get('format') == 'uuid':
-                has_uuid = True
-                break
-
-        if not has_uuid:
-            schema.insert(0, {"type": ["null", "string"], "format": "uuid"})
+        if not 'string' in schema['type']:
+            schema['type'].append('string')
+            changed = True
+        
+        if not schema.get('format'):
+            schema['format'] = 'uuid';
             changed = True
 
     elif isinstance(value, (objectid.ObjectId)):
