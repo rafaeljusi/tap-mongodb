@@ -89,7 +89,7 @@ def sync_collection(client, stream, state, projection):
                                                    'last_id_fetched_type')
         find_filter['$gte'] = common.string_to_class(last_id_fetched, last_id_fetched_type)
 
-    query_message = 'Querying {} with:\n\tFind Parameters: {}'.format(
+    query_message = 'Full Sync {} with:\n\tFind Parameters: {}'.format(
         stream['tap_stream_id'],
         find_filter)
     if projection:
