@@ -453,7 +453,7 @@ def main_impl():
         connection_string += f"&readPreference={readPreference}"
         
     if ssl:
-        connection_string += f"&ssl=true"
+        connection_string += f"&ssl=true&ssl_cert_reqs=CERT_NONE"
 
     client = pymongo.MongoClient(connection_string)
 

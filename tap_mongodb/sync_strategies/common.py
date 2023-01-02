@@ -96,6 +96,9 @@ def string_to_class(str_value, type_value):
                                                  .format(type_value))
 
 def safe_transform_datetime(value, path):
+    if value == datetime.datetime(1, 1, 1, 0, 0):
+        return None
+
     timezone = tzlocal.get_localzone()
     try:
         local_datetime = timezone.localize(value)
@@ -264,22 +267,10 @@ def add_to_type(schema, value):
 
         # get pointer to list's anyOf schema and see if list schema already existed
         list_schema = {"type": "array", "items": {"anyOf": [{}]}}
-        for field_schema_entry in schema:
-            if field_schema_entry.get('type') == 'array':
-                list_schema = field_schema_entry
-                has_list = True
-        anyof_schema = list_schema['items']['anyOf']
+        if not 'array' in schema['type']:
+            schema['type'].append('array')
+            changed = True
 
-        # see if list schema changed
-        list_entry_changed = False
-        for list_entry in value:
-            list_entry_changed = add_to_type(anyof_schema, list_entry) or list_entry_changed
-            changed = changed or list_entry_changed
-
-        # if it changed and existed, it's reference was modified
-        # if it changed and didn't exist, insert it
-        if not has_list and list_entry_changed:
-            schema.insert(-1, list_schema)
     elif isinstance(value, str):
         
         if not 'string' in schema['type']:

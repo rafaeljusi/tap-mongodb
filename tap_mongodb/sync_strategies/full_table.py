@@ -82,25 +82,14 @@ def sync_collection(client, stream, state, projection):
                                       'max_id_type',
                                       max_id_value.__class__.__name__)
 
-    find_filter = {'$lte': max_id_value}
-    if last_id_fetched:
-        last_id_fetched_type = singer.get_bookmark(state,
-                                                   stream['tap_stream_id'],
-                                                   'last_id_fetched_type')
-        find_filter['$gte'] = common.string_to_class(last_id_fetched, last_id_fetched_type)
-
-    query_message = 'Full Sync {} with:\n\tFind Parameters: {}'.format(
-        stream['tap_stream_id'],
-        find_filter)
+    query_message = 'Full Sync {}'.format(stream['tap_stream_id'])
     if projection:
         query_message += '\n\tProjection: {}'.format(projection)
     # pylint: disable=logging-format-interpolation
     LOGGER.info(query_message)
 
 
-    with collection.find({'_id': find_filter},
-                         projection,
-                         sort=[("_id", pymongo.ASCENDING)]) as cursor:
+    with collection.find({}, projection, sort=[("_id", pymongo.ASCENDING)]) as cursor:
         rows_saved = 0
         time_extracted = utils.now()
         start_time = time.time()
